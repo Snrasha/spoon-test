@@ -1,7 +1,9 @@
 package spoon.main;
 
 import java.io.File;
+import java.io.IOException;
 
+import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -17,7 +19,14 @@ public class App {
 		String out = "./output";
 		String name = "spoon-test";
 		before(input,out,name);
-		after(input,out);
+		remove(input+"/"+name);
+	}
+	private static void remove(String path){
+		// Clean the output directory
+		try {
+			FileUtils.deleteDirectory(new File(path));
+		} catch (IOException e1) {
+		}
 	}
 
 	
@@ -36,16 +45,10 @@ public class App {
 		launcher.getEnvironment().setNoClasspath(true);
 
 		// Analyze only file on the input directory
-		launcher.addInputResource(input + "/" + name);
+		launcher.addInputResource(input + "/" + name + "/src/main/java");
 		// Put all analyzed file (transformed or not) on the ouput directory
-
-		// Clean the output directory
-		File directory_out = new File(out);
-		String[] entries = directory_out.list();
-		for (String s : entries) {
-			currentFile = new File(directory_out.getPath(), s);
-			currentFile.delete();
-		}
+		remove(out);
+		
 		launcher.setSourceOutputDirectory(out+"/"+name);
 		// launcher.getEnvironment().setCommentEnabled(true);
 
@@ -61,21 +64,5 @@ public class App {
 			System.out.println("ok");
 		}
 		
-	}
-	public static void after(String input, String out){
-		File currentFile;
-		// delete all thing on the input
-		File directory_out2 = new File(out);
-		String[] entries2 = directory_out2.list();
-		for (String s : entries2) {
-			currentFile = new File(directory_out2.getPath(), s);
-			currentFile.delete();
-		}
-		File directory_in = new File(input);
-		String[] entries3 = directory_in.list();
-		for (String s : entries3) {
-			currentFile = new File(directory_in.getPath(), s);
-			currentFile.delete();
-		}
 	}
 }
