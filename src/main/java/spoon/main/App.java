@@ -4,9 +4,10 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.commons.io.FileUtils;
-import org.kohsuke.github.GHPullRequest;
-import org.kohsuke.github.GHRepository;
-import org.kohsuke.github.GitHub;
+import org.eclipse.egit.github.core.PullRequest;
+import org.eclipse.egit.github.core.PullRequestMarker;
+import org.eclipse.egit.github.core.RepositoryId;
+import org.eclipse.egit.github.core.service.PullRequestService;
 import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -104,13 +105,21 @@ public class App {
 	private static void after() throws IOException {
 
 		FileUtils.copyDirectory(new File(out), new File(input + "/src/main/java"));
-		GitHub github = GitHub.connect();
-		GHRepository repo = github.getRepository(input);
-		repo.createPullRequest("Analyse of Paprika", App.nameUser + ":" + App.branch, "Analyse", "/src/main/java");
 		
 		
+		PullRequestService service = new PullRequestService();
+	//  service.getClient().set
+		service.getClient().setCredentials("user", "passw0rd");
+		RepositoryId repo = new RepositoryId(App.nameUser, App.name);
+		//service.createPullRequest(repo, 10, App.nameUser+":"+App.branch, base);
 		
-		
+		PullRequest request = new PullRequest();
+		request.setBody("a fix");
+		request.setTitle("this is a fix");
+		request.setHead(new PullRequestMarker().setRef("master"));
+		request.setBase(new PullRequestMarker().setRef("de"));
+		request.setUrl("https://github.com/Snrasha/spoon-test.git");
+		service.createPullRequest(repo, request);
 		
 		remove(out);
 		/* remove(input); */
