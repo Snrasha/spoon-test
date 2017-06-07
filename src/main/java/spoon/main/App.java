@@ -108,6 +108,10 @@ public class App {
 		GHRepository repo = github.getRepository(input);
 		repo.createPullRequest("Analyse of Paprika", App.nameUser + ":" + App.branch, "Analyse", "/src/main/java");
 		
+		
+		
+		
+		
 		remove(out);
 		/* remove(input); */
 		
