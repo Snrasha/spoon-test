@@ -81,6 +81,12 @@
 			<artifactId>org.eclipse.jgit</artifactId>
 			<version>4.7.0.201704051617-r</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.kohsuke/github-api -->
+		<dependency>
+			<groupId>org.kohsuke</groupId>
+			<artifactId>github-api</artifactId>
+			<version>1.85</version>
+		</dependency>
 	</dependencies>
 	<pluginRepositories>
 		<!-- required for JDT dependency -->
