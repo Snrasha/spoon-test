@@ -1,67 +1,46 @@
 package spoon.main;
 
-import java.util.List;
 
-import org.apache.log4j.Level;
+@codesmells.annotations.Blob(currentLackOfCohesionMethods = 457, limitLackOfCohesionMethods = 40)
+public class MethodProcessor extends spoon.processing.AbstractProcessor<spoon.reflect.declaration.CtMethod> {
+    @java.lang.Override
+    public void process(spoon.reflect.declaration.CtMethod element) {
+        java.lang.System.out.println(("Method:" + (element.getSimpleName())));
+        longMethodDetection(element);
+        getterSetterDetection(element);
+    }
 
-import spoon.processing.AbstractProcessor;
-import spoon.reflect.declaration.CtAnnotation;
-import spoon.reflect.declaration.CtClass;
-import spoon.reflect.declaration.CtField;
-import spoon.reflect.declaration.CtMethod;
-import spoon.reflect.declaration.ModifierKind;
-import spoon.reflect.factory.AnnotationFactory;
-import spoon.reflect.visitor.filter.FieldAccessFilter;
+    private void getterSetterDetection(spoon.reflect.declaration.CtMethod element) {
+        if (((element.getBody()) != null) && ((element.getBody().getStatements().size()) == 1)) {
+            java.lang.Class<codesmells.annotations.Igs> annotationType = codesmells.annotations.Igs.class;
+            spoon.reflect.factory.AnnotationFactory factory = new spoon.reflect.factory.AnnotationFactory(element.getFactory());
+            java.util.List<spoon.reflect.declaration.CtField> fields = element.getParent(spoon.reflect.declaration.CtClass.class).getFields();
+            for (spoon.reflect.declaration.CtField field : fields) {
+                if (!(element.getBody().getElements(new spoon.reflect.visitor.filter.FieldAccessFilter(field.getReference())).isEmpty())) {
+                    getFactory().getEnvironment().report(this, org.apache.log4j.Level.WARN, element, "IGS code smell");
+                    factory.annotate(element, annotationType);
+                    if (!(field.hasModifier(spoon.reflect.declaration.ModifierKind.PUBLIC)));
+                    factory.annotate(field, annotationType);
+                }
+            }
+        }
+    }
 
-public class MethodProcessor extends AbstractProcessor<CtMethod> {
-	@Override
-	public void process(CtMethod element) {
-		System.out.println("Method:"+element.getSimpleName());
-		longMethodDetection(element);
-		getterSetterDetection(element);
-
-	}
-
-	private void getterSetterDetection(CtMethod element) {
-
-		if (element.getBody()!=null &&element.getBody().getStatements().size() == 1) {
-
-			Class<codesmells.annotations.Igs> annotationType = codesmells.annotations.Igs.class;
-			AnnotationFactory factory = new AnnotationFactory(element.getFactory());
-
-			List<CtField> fields = element.getParent(CtClass.class).getFields();
-			for (CtField field : fields) {
-				if (!element.getBody().getElements(new FieldAccessFilter(field.getReference())).isEmpty()) {
-					getFactory().getEnvironment().report(this, Level.WARN, element, "IGS code smell");
-					factory.annotate(element, annotationType);
-					if(!field.hasModifier(ModifierKind.PUBLIC));
-					factory.annotate(field, annotationType);
-				}
-			}
-
-		}
-	}
-
-	private void longMethodDetection(CtMethod element) {
-		boolean added = false;
-		
-		Class<codesmells.annotations.Lm> annotationType = codesmells.annotations.Lm.class;
-
-		AnnotationFactory factory = new AnnotationFactory(element.getFactory());
-		CtAnnotation<?> annotation = factory.annotate(element, annotationType);
-
-		codesmells.annotations.Lm lm = element.getAnnotation(codesmells.annotations.Lm.class);
-		if (element.getBody()!=null && element.getBody().getStatements().size() > lm.limitInstructions()) {
-
-			getFactory().getEnvironment().report(this, Level.WARN, element, "Long method code smell");
-			
-			annotation.addValue("limitInstructions", lm.limitInstructions());
-			annotation.addValue("currentInstructions", element.getBody().getStatements().size());
-			added = true;
-		}
-
-		if (!added)
-			element.removeAnnotation(annotation);
-	}
-
+    private void longMethodDetection(spoon.reflect.declaration.CtMethod element) {
+        boolean added = false;
+        java.lang.Class<codesmells.annotations.Lm> annotationType = codesmells.annotations.Lm.class;
+        spoon.reflect.factory.AnnotationFactory factory = new spoon.reflect.factory.AnnotationFactory(element.getFactory());
+        spoon.reflect.declaration.CtAnnotation<?> annotation = factory.annotate(element, annotationType);
+        codesmells.annotations.Lm lm = element.getAnnotation(codesmells.annotations.Lm.class);
+        if (((element.getBody()) != null) && ((element.getBody().getStatements().size()) > (lm.limitInstructions()))) {
+            getFactory().getEnvironment().report(this, org.apache.log4j.Level.WARN, element, "Long method code smell");
+            annotation.addValue("limitInstructions", lm.limitInstructions());
+            annotation.addValue("currentInstructions", element.getBody().getStatements().size());
+            added = true;
+        }
+        if (!added)
+            element.removeAnnotation(annotation);
+        
+    }
 }
+
