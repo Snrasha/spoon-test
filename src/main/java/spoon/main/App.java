@@ -192,11 +192,13 @@ public class App {
 		 * push.getPushOptions().add("de");
 		 */
 		try {
+			GitpullRequest pull = new GitpullRequest(App.nameUser,App.name,App.branch);
+			/*
 			push.setRemote("origin")
 				.setPushAll()
 				// Créer un faux compte pour sa?
 				.setCredentialsProvider(new UsernamePasswordCredentialsProvider("Snrasha", "****")).call();
-
+*/
 			/*
 			 * SshSessionFactory sshSessionFactory = new
 			 * JschConfigSessionFactory() {
