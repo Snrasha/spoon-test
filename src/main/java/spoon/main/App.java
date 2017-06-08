@@ -1,24 +1,21 @@
 package spoon.main;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.eclipse.jgit.api.CheckoutCommand;
 import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.PushCommand;
-import org.eclipse.jgit.api.TransportConfigCallback;
 import org.eclipse.jgit.api.errors.*;
-import org.eclipse.jgit.transport.JschConfigSessionFactory;
-import org.eclipse.jgit.transport.OpenSshConfig.Host;
-import org.eclipse.jgit.transport.SshSessionFactory;
-import org.eclipse.jgit.transport.SshTransport;
-import org.eclipse.jgit.transport.Transport;
+import org.json.JSONObject;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
-
-import com.jcraft.jsch.Session;
 
 import spoon.Launcher;
 import spoon.processing.ProcessInterruption;
@@ -60,7 +57,7 @@ public class App {
 			branch = "master";
 		} else
 			branch = split[6];
-
+		App.branch="PaprikaAnalyze";
 		App.ssh = "git@github.com:Snrasha/spoon-test.git";
 		run();
 	}
@@ -93,9 +90,13 @@ public class App {
 			Set<String> set = new HashSet<>();
 			set.add("refs/heads/de");
 			CloneCommand clone = Git.cloneRepository();
-			clone.setDirectory(new File(input)).setURI(App.url).setBranchesToClone(set).setBranch("refs/heads/de")
+			Git git=clone.setDirectory(new File(input)).setURI(App.url).setBranchesToClone(set).setBranch("refs/heads/de")
 					.call();
-
+			CheckoutCommand checkout=git.checkout();
+			checkout.setName(App.branch).setOrphan(true);
+			checkout.call();
+			git.close();
+			
 			/*
 			 * 
 			 * SshSessionFactory sshSessionFactory = new
@@ -187,18 +188,35 @@ public class App {
 		}
 		PushCommand push = git.push();
 
-		/*
-		 * push.getPushOptions().add("-u"); push.getPushOptions().add("origin");
-		 * push.getPushOptions().add("de");
-		 */
 		try {
-			GitpullRequest pull = new GitpullRequest(App.nameUser,App.name,App.branch);
-			/*
-			push.setRemote("origin")
-				.setPushAll()
-				// Créer un faux compte pour sa?
-				.setCredentialsProvider(new UsernamePasswordCredentialsProvider("Snrasha", "****")).call();
+
+			InputStream is = new FileInputStream("./info.json");
+			String jsonTxt = IOUtils.toString(is);
+			System.out.println(jsonTxt);
+			JSONObject json = new JSONObject(jsonTxt);
+
+			String token=json.getString("token2");
+			
+			/*push.setRemote("origin")
+			.setPushAll()
+			.setCredentialsProvider(new UsernamePasswordCredentialsProvider("token", token)).call();
 */
+			
+			GitpullRequest pull = new GitpullRequest(App.nameUser,App.name,App.branch);
+			pull.getData();
+		
+		/*	
+			
+			PullRequestService service = new PullRequestService();
+			service.getClient().setOAuth2Token(token);
+			PullRequest request= new PullRequest();
+			request.setTitle("New test");
+			request.setBody("Please put in");
+			request.setBase(new PullRequestMarker().setRef("de"));
+			request.setHead(new PullRequestMarker().)
+			service.createPullRequest(repository, request);
+			*/
+	
 			/*
 			 * SshSessionFactory sshSessionFactory = new
 			 * JschConfigSessionFactory() {

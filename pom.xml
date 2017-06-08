@@ -87,7 +87,12 @@
 			<artifactId>org.eclipse.egit.github.core</artifactId>
 			<version>2.1.5</version>
 		</dependency>
-
+		<!-- https://mvnrepository.com/artifact/org.json/json -->
+		<dependency>
+			<groupId>org.json</groupId>
+			<artifactId>json</artifactId>
+			<version>20170516</version>
+		</dependency>
 
 	</dependencies>
 	<pluginRepositories>
