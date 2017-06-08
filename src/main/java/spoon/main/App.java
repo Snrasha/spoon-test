@@ -2,6 +2,7 @@ package spoon.main;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashSet;
@@ -9,8 +10,13 @@ import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.eclipse.egit.github.core.Repository;
+import org.eclipse.egit.github.core.RepositoryId;
+import org.eclipse.egit.github.core.client.GitHubClient;
+import org.eclipse.egit.github.core.service.RepositoryService;
 import org.eclipse.jgit.api.CheckoutCommand;
 import org.eclipse.jgit.api.CloneCommand;
+import org.eclipse.jgit.api.CreateBranchCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.PushCommand;
 import org.eclipse.jgit.api.errors.*;
@@ -36,12 +42,26 @@ public class App {
 	public static String out;
 	public static String name;
 	public static String nameUser;
+	public static final String nameBot="SnrashaBot";
 	public static String branch;
-
-	public static String ssh;
+	public static String token;
+	public static String cloneUrl;
 
 	public static void main(String[] args) {
 
+		InputStream is;
+		try {
+			is = new FileInputStream("./info.json");
+			String jsonTxt;
+			jsonTxt = IOUtils.toString(is);
+			System.out.println(jsonTxt);
+			JSONObject json = new JSONObject(jsonTxt);
+			App.token = json.getString("token");
+
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		App.url = "https://github.com/Snrasha/spoon-test.git";
 		String[] split = url.split("/");
 		if (split.length < 5)
@@ -53,13 +73,9 @@ public class App {
 		App.nameUser = split[3];
 		App.input = "./input/" + App.name;
 		App.out = "./output/" + App.name;
-		if (split.length < 7) {
-			branch = "master";
-		} else
-			branch = split[6];
-		App.branch="PaprikaAnalyze";
-		App.ssh = "git@github.com:Snrasha/spoon-test.git";
+		
 		run();
+
 	}
 
 	private static void run() {
@@ -83,37 +99,45 @@ public class App {
 	private static void remove(String path) throws IOException {
 		FileUtils.deleteDirectory(new File(path));
 	}
+/*
+	private static void createBranch(Git git)
+			throws RefAlreadyExistsException, RefNotFoundException, InvalidRefNameException, GitAPIException {
+		git.branchCreate().setName(App.branch).call();
+	}
+
+	private static void changeBranch(Git git) throws RefAlreadyExistsException, RefNotFoundException,
+			InvalidRefNameException, CheckoutConflictException, GitAPIException {
+		git.checkout().setName(App.branch).call();
+	}
+*/
+	private static Git cloneRepo() throws InvalidRemoteException, TransportException, GitAPIException {
+		Set<String> set = new HashSet<>();
+		set.add("refs/heads/"+App.branch);
+		CloneCommand clone = Git.cloneRepository();
+		return clone.setDirectory(new File(input)).setURI(App.cloneUrl).setBranchesToClone(set).setBranch("refs/heads/"+App.branch)
+				.call();
+	}
 
 	private static void before() throws IOException {
 
 		try {
-			Set<String> set = new HashSet<>();
-			set.add("refs/heads/de");
-			CloneCommand clone = Git.cloneRepository();
-			Git git=clone.setDirectory(new File(input)).setURI(App.url).setBranchesToClone(set).setBranch("refs/heads/de")
-					.call();
-			CheckoutCommand checkout=git.checkout();
-			checkout.setName(App.branch).setOrphan(true);
-			checkout.call();
-			git.close();
+
+			RepositoryService service = new RepositoryService();
+			service.getClient().setCredentials("token", App.token);//.setOAuth2Token(App.token);
+			RepositoryId toBeForked = new RepositoryId(App.nameUser, App.name);
 			
-			/*
-			 * 
-			 * SshSessionFactory sshSessionFactory = new
-			 * JschConfigSessionFactory() {
-			 * 
-			 * @Override protected void configure(Host host, Session session) {
-			 * session.setConfig("StrictHostKeyChecking", "no"); } };
-			 * CloneCommand cloneCommand = Git.cloneRepository(); cloneCommand
-			 * .setDirectory(new File(input)) .setURI(App.ssh)
-			 * .setBranchesToClone(set).setBranch("refs/heads/de")
-			 * .setTransportConfigCallback(new TransportConfigCallback() {
-			 * 
-			 * @Override public void configure(Transport transport) {
-			 * SshTransport sshTransport = (SshTransport) transport;
-			 * sshTransport.setSshSessionFactory(sshSessionFactory); } });
-			 * cloneCommand.call();
-			 */
+			Repository repo=service.forkRepository(toBeForked);
+			App.branch=repo.getMasterBranch();
+			App.cloneUrl=repo.getCloneUrl();
+			System.out.println(App.cloneUrl);
+			// Clone the repo of the url.
+			Git git = cloneRepo();
+			
+			// Create a new branch for edit.
+			//createBranch(git);
+			// Go on the new branch.
+			//changeBranch(git);
+			git.close();
 
 		} catch (InvalidRemoteException e) {
 			e.printStackTrace();
@@ -123,14 +147,14 @@ public class App {
 			e.printStackTrace();
 
 		}
+		// Remove the out folder
+		remove(out);
 
+		// Launch Paprika-Spoon
 		final Launcher launcher = new Launcher();
 		launcher.getEnvironment().setNoClasspath(true);
 
-		// Analyze only file on the input directory
 		launcher.addInputResource(input + "/src/main/java");
-		// Put all analyzed file (transformed or not) on the ouput directory
-		remove(out);
 
 		launcher.setSourceOutputDirectory(out);
 		// launcher.getEnvironment().setCommentEnabled(true);
@@ -149,113 +173,60 @@ public class App {
 
 	}
 
+	private static void addRepo(Git git) throws NoFilepatternException, GitAPIException {
+		git.add().addFilepattern(".").call();
+	}
+
+	private static void commitRepo(Git git) throws NoHeadException, NoMessageException, UnmergedPathsException,
+			ConcurrentRefUpdateException, WrongRepositoryStateException, AbortedByHookException, GitAPIException {
+		git.commit().setMessage("test message").call();
+	}
+
 	private static void after() throws IOException {
 
-		try {
-			FileUtils.copyDirectory(new File(out), new File(input + "/src/main/java"));
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		if(App.cloneUrl==null) return;
 		
-		
+		// Move output on the input
+		FileUtils.copyDirectory(new File(out), new File(input + "/src/main/java"));
 
-		Git git = null;
-		try {
-			git = Git.open(new File(App.input));
-		} catch (IOException e2) {
-			// TODO Auto-generated catch block
-			e2.printStackTrace();
-		}
+		Git git = Git.open(new File(App.input));
 
 		try {
-			git.add().addFilepattern(".").call();
+			addRepo(git);
+			commitRepo(git);
 		} catch (NoFilepatternException e) {
 			e.printStackTrace();
 		} catch (GitAPIException e) {
 			e.printStackTrace();
 		}
-		try {
-			System.out.println(git.getRepository().getFullBranch());
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-		try {
-			git.commit()
-			.setMessage("test message").call();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		PushCommand push = git.push();
+
 
 		try {
-
-			InputStream is = new FileInputStream("./info.json");
-			String jsonTxt = IOUtils.toString(is);
-			System.out.println(jsonTxt);
-			JSONObject json = new JSONObject(jsonTxt);
-
-			String token=json.getString("token2");
 			
-			/*push.setRemote("origin")
-			.setPushAll()
-			.setCredentialsProvider(new UsernamePasswordCredentialsProvider("token", token)).call();
-*/
 			
-			GitpullRequest pull = new GitpullRequest(App.nameUser,App.name,App.branch);
+			PushCommand push = git.push();
+			push.setRemote("origin").setPushAll()
+					.setCredentialsProvider(new UsernamePasswordCredentialsProvider("token", token)).call();
+
+			GitpullRequest pull = new GitpullRequest(App.nameBot, App.name, App.branch);
 			pull.getData();
-		
-		/*	
-			
-			PullRequestService service = new PullRequestService();
-			service.getClient().setOAuth2Token(token);
-			PullRequest request= new PullRequest();
-			request.setTitle("New test");
-			request.setBody("Please put in");
-			request.setBase(new PullRequestMarker().setRef("de"));
-			request.setHead(new PullRequestMarker().)
-			service.createPullRequest(repository, request);
-			*/
-	
+
 			/*
-			 * SshSessionFactory sshSessionFactory = new
-			 * JschConfigSessionFactory() {
 			 * 
-			 * @Override protected void configure(Host host, Session session) {
-			 * session.setConfig("StrictHostKeyChecking", "no"); } }; push
-			 * .setRemote("origin") .setTransportConfigCallback(new
-			 * TransportConfigCallback() {
-			 * 
-			 * @Override public void configure(Transport transport) {
-			 * SshTransport sshTransport = (SshTransport) transport;
-			 * sshTransport.setSshSessionFactory(sshSessionFactory); }
-			 * }).call();
-			 * 
+			 * PullRequestService service = new PullRequestService();
+			 * service.getClient().setOAuth2Token(token); PullRequest request=
+			 * new PullRequest(); request.setTitle("New test");
+			 * request.setBody("Please put in"); request.setBase(new
+			 * PullRequestMarker().setRef("de")); request.setHead(new
+			 * PullRequestMarker().) service.createPullRequest(repository,
+			 * request);
 			 */
 
+
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-
 		git.close();
-
-		/*
-		 * RepositoryService service = new RepositoryService(); Repository repo
-		 * = service.getRepository(App.nameUser, App.name);
-		 * System.out.println(repo.getName() + " Watchers: " +
-		 * repo.getWatchers());
-		 * 
-		 * GistFile file = new GistFile();
-		 * file.setContent("System.out.println(\"Hello World\");"); Gist gist =
-		 * new Gist(); gist.setDescription("Prints a string to standard out");
-		 * gist.setFiles(Collections.singletonMap("Hello.java", file));
-		 * GistService service2 = new GistService();
-		 * service2.getClient().setOAuth2Token(App.nameUser); gist =
-		 * service2.createGist(gist);
-		 * 
-		 * System.out.println(gist.getGitPullUrl() +
-		 * " and "+gist.getGitPushUrl());
-		 */
 		try {
 			remove(out);
 			remove(input);
