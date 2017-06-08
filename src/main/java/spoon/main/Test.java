@@ -49,7 +49,7 @@ public class Test {
         java.lang.System.out.println(spoon.main.Test.number);
     }
 
-    @codesmells.annotations.Lm(currentInstructions = 32, limitInstructions = 26)
+    @codesmells.annotations.Lm(currentInstructions = { 32 , 32 }, limitInstructions = { 26 , 26 })
     public static void longmethod() {
         (spoon.main.Test.number)++;
         (spoon.main.Test.number)++;
